@@ -40,11 +40,9 @@ jobs:
       - name: "4. Verify Base44 Variables"
         env:
           VITE_BASE44_APP_ID: ${{ vars.VITE_BASE44_APP_ID }}
-          VITE_BASE44_FUNCTIONS_VERSION: ${{ vars.VITE_BASE44_FUNCTIONS_VERSION }}
           VITE_BASE44_APP_BASE_URL: ${{ vars.VITE_BASE44_APP_BASE_URL }}
         run: |
           test -n "$VITE_BASE44_APP_ID" || (echo "Missing VITE_BASE44_APP_ID" && exit 1)
-          test -n "$VITE_BASE44_FUNCTIONS_VERSION" || (echo "Missing VITE_BASE44_FUNCTIONS_VERSION" && exit 1)
           test -n "$VITE_BASE44_APP_BASE_URL" || (echo "Missing VITE_BASE44_APP_BASE_URL" && exit 1)
 
       - name: "5. Install Dependencies"
@@ -57,7 +55,6 @@ jobs:
         run: npm run build -- --base=./
         env:
           VITE_BASE44_APP_ID: ${{ vars.VITE_BASE44_APP_ID }}
-          VITE_BASE44_FUNCTIONS_VERSION: ${{ vars.VITE_BASE44_FUNCTIONS_VERSION }}
           VITE_BASE44_APP_BASE_URL: ${{ vars.VITE_BASE44_APP_BASE_URL }}
 
       - name: "8. Verify Capacitor Configuration"
