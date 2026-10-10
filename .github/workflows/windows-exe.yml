@@ -1,0 +1,68 @@
+name: Build HIKER Factory ERP Windows EXE
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - App-exe
+    paths:
+      - "src/**"
+      - "public/**"
+      - "package.json"
+      - "package-lock.json"
+      - "vite.config.js"
+      - "electron/**"
+      - "electron-builder.yml"
+      - ".github/workflows/windows-exe.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Check required Base44 variables
+        shell: pwsh
+        env:
+          VITE_BASE44_APP_ID: ${{ vars.VITE_BASE44_APP_ID }}
+          VITE_BASE44_FUNCTIONS_VERSION: ${{ vars.VITE_BASE44_FUNCTIONS_VERSION }}
+          VITE_BASE44_APP_BASE_URL: ${{ vars.VITE_BASE44_APP_BASE_URL }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:VITE_BASE44_APP_ID)) { throw "Missing repository variable: VITE_BASE44_APP_ID" }
+          if ([string]::IsNullOrWhiteSpace($env:VITE_BASE44_FUNCTIONS_VERSION)) { throw "Missing repository variable: VITE_BASE44_FUNCTIONS_VERSION" }
+          if ([string]::IsNullOrWhiteSpace($env:VITE_BASE44_APP_BASE_URL)) { throw "Missing repository variable: VITE_BASE44_APP_BASE_URL" }
+
+      - name: Install project dependencies
+        run: npm install
+
+      - name: Install Electron packaging tools
+        run: npm install --no-save electron@35.1.5 electron-builder@26.0.12
+
+      - name: Build web app
+        run: npm run build -- --base=./
+        env:
+          VITE_BASE44_APP_ID: ${{ vars.VITE_BASE44_APP_ID }}
+          VITE_BASE44_FUNCTIONS_VERSION: ${{ vars.VITE_BASE44_FUNCTIONS_VERSION }}
+          VITE_BASE44_APP_BASE_URL: ${{ vars.VITE_BASE44_APP_BASE_URL }}
+
+      - name: Build Windows installer
+        run: npx electron-builder --config electron-builder.yml --win nsis --x64 --publish never
+
+      - name: Upload Windows installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: hiker-factory-erp-windows-exe
+          path: release/*.exe
+          if-no-files-found: error
+          retention-days: 14
+          
