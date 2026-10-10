@@ -1,0 +1,87 @@
+
+name: Build HIKER Factory ERP Android APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - App-exe
+    paths:
+      - "src/**"
+      - "public/**"
+      - "package.json"
+      - "package-lock.json"
+      - "vite.config.js"
+      - "capacitor.config.json"
+      - "electron/**"
+      - ".github/workflows/android-apk.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Check required Base44 variables
+        env:
+          VITE_BASE44_APP_ID: ${{ vars.VITE_BASE44_APP_ID }}
+          VITE_BASE44_FUNCTIONS_VERSION: ${{ vars.VITE_BASE44_FUNCTIONS_VERSION }}
+          VITE_BASE44_APP_BASE_URL: ${{ vars.VITE_BASE44_APP_BASE_URL }}
+        run: |
+          test -n "$VITE_BASE44_APP_ID" || (echo "Missing repository variable: VITE_BASE44_APP_ID" && exit 1)
+          test -n "$VITE_BASE44_FUNCTIONS_VERSION" || (echo "Missing repository variable: VITE_BASE44_FUNCTIONS_VERSION" && exit 1)
+          test -n "$VITE_BASE44_APP_BASE_URL" || (echo "Missing repository variable: VITE_BASE44_APP_BASE_URL" && exit 1)
+
+      - name: Install project dependencies
+        run: npm install
+
+      - name: Install Capacitor
+        run: npm install --no-save @capacitor/core@7 @capacitor/cli@7 @capacitor/android@7
+
+      - name: Build web app
+        run: npm run build -- --base=./
+        env:
+          VITE_BASE44_APP_ID: ${{ vars.VITE_BASE44_APP_ID }}
+          VITE_BASE44_FUNCTIONS_VERSION: ${{ vars.VITE_BASE44_FUNCTIONS_VERSION }}
+          VITE_BASE44_APP_BASE_URL: ${{ vars.VITE_BASE44_APP_BASE_URL }}
+
+      - name: Prepare Android project
+        run: |
+          if [ ! -f capacitor.config.json ]; then
+            echo "capacitor.config.json is missing"
+            exit 1
+          fi
+          npx cap add android
+          npx cap sync android
+
+      - name: Build debug APK
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: hiker-factory-erp-android-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 14
+          
