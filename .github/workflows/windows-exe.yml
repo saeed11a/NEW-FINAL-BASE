@@ -22,47 +22,50 @@ permissions:
 jobs:
   build-windows:
     runs-on: windows-latest
+
     steps:
-      - name: Checkout repository
+      - name: "1. Checkout Repository"
         uses: actions/checkout@v4
 
-      - name: Set up Node.js
+      - name: "2. Set Up Node.js"
         uses: actions/setup-node@v4
         with:
           node-version: 22
 
-      - name: Check required Base44 variables
+      - name: "3. Verify Base44 Variables"
         shell: pwsh
         env:
           VITE_BASE44_APP_ID: ${{ vars.VITE_BASE44_APP_ID }}
-          VITE_BASE44_FUNCTIONS_VERSION: ${{ vars.VITE_BASE44_FUNCTIONS_VERSION }}
           VITE_BASE44_APP_BASE_URL: ${{ vars.VITE_BASE44_APP_BASE_URL }}
         run: |
-          if ([string]::IsNullOrWhiteSpace($env:VITE_BASE44_APP_ID)) { throw "Missing repository variable: VITE_BASE44_APP_ID" }
-          if ([string]::IsNullOrWhiteSpace($env:VITE_BASE44_FUNCTIONS_VERSION)) { throw "Missing repository variable: VITE_BASE44_FUNCTIONS_VERSION" }
-          if ([string]::IsNullOrWhiteSpace($env:VITE_BASE44_APP_BASE_URL)) { throw "Missing repository variable: VITE_BASE44_APP_BASE_URL" }
+          if (-not $env:VITE_BASE44_APP_ID) { throw "Missing VITE_BASE44_APP_ID" }
+          if (-not $env:VITE_BASE44_APP_BASE_URL) { throw "Missing VITE_BASE44_APP_BASE_URL" }
 
-      - name: Install project dependencies
+      - name: "4. Install Dependencies"
         run: npm install
 
-      - name: Install Electron packaging tools
+      - name: "5. Install Electron Packaging Tools"
         run: npm install --no-save electron@35.1.5 electron-builder@26.0.12
 
-      - name: Build web app
+      - name: "6. Build HIKER ERP"
         run: npm run build -- --base=./
         env:
           VITE_BASE44_APP_ID: ${{ vars.VITE_BASE44_APP_ID }}
-          VITE_BASE44_FUNCTIONS_VERSION: ${{ vars.VITE_BASE44_FUNCTIONS_VERSION }}
           VITE_BASE44_APP_BASE_URL: ${{ vars.VITE_BASE44_APP_BASE_URL }}
 
-      - name: Build Windows installer
+      - name: "7. Verify Electron Configuration"
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "electron-builder.yml")) { throw "Missing electron-builder.yml" }
+          if (-not (Test-Path "electron")) { throw "Missing electron folder" }
+
+      - name: "8. Build Windows Installer"
         run: npx electron-builder --config electron-builder.yml --win nsis --x64 --publish never
 
-      - name: Upload Windows installer
+      - name: "9. Upload Windows Installer"
         uses: actions/upload-artifact@v4
         with:
-          name: hiker-factory-erp-windows-exe
+          name: HIKER-Factory-ERP-Windows-EXE
           path: release/*.exe
           if-no-files-found: error
           retention-days: 14
-          
