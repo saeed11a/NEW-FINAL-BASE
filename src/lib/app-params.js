@@ -17,7 +17,7 @@ const getAppParams = () => {
 	return {
 		appId: import.meta.env.VITE_BASE44_APP_ID,
 		token: getAccessToken(),
-		functionsVersion: import.meta.env.VITE_BASE44_FUNCTIONS_VERSION,
+		functionsVersion: undefined,
 		appBaseUrl: import.meta.env.VITE_BASE44_APP_BASE_URL,
 	}
 }
