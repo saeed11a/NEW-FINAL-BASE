@@ -36,39 +36,36 @@ jobs:
         shell: pwsh
         env:
           VITE_BASE44_APP_ID: ${{ vars.VITE_BASE44_APP_ID }}
-          VITE_BASE44_FUNCTIONS_VERSION: ${{ vars.VITE_BASE44_FUNCTIONS_VERSION }}
           VITE_BASE44_APP_BASE_URL: ${{ vars.VITE_BASE44_APP_BASE_URL }}
         run: |
           if (-not $env:VITE_BASE44_APP_ID) { throw "Missing VITE_BASE44_APP_ID" }
-          if (-not $env:VITE_BASE44_FUNCTIONS_VERSION) { throw "Missing VITE_BASE44_FUNCTIONS_VERSION" }
           if (-not $env:VITE_BASE44_APP_BASE_URL) { throw "Missing VITE_BASE44_APP_BASE_URL" }
 
       - name: "4. Install Dependencies"
         run: npm install
 
-      - name: "5. Build HIKER ERP"
-        run: npm run build
+      - name: "5. Install Electron Packaging Tools"
+        run: npm install --no-save electron@35.1.5 electron-builder@26.0.12
+
+      - name: "6. Build HIKER ERP"
+        run: npm run build -- --base=./
         env:
           VITE_BASE44_APP_ID: ${{ vars.VITE_BASE44_APP_ID }}
-          VITE_BASE44_FUNCTIONS_VERSION: ${{ vars.VITE_BASE44_FUNCTIONS_VERSION }}
           VITE_BASE44_APP_BASE_URL: ${{ vars.VITE_BASE44_APP_BASE_URL }}
 
-      - name: "6. Verify Electron Configuration"
+      - name: "7. Verify Electron Configuration"
         shell: pwsh
         run: |
-          if (-not (Test-Path "electron")) { throw "Missing electron folder" }
           if (-not (Test-Path "electron-builder.yml")) { throw "Missing electron-builder.yml" }
-          if (-not (Test-Path "package.json")) { throw "Missing package.json" }
+          if (-not (Test-Path "electron")) { throw "Missing electron folder" }
 
-      - name: "7. Build Windows EXE"
-        run: npm run dist:win
+      - name: "8. Build Windows Installer"
+        run: npx electron-builder --config electron-builder.yml --win nsis --x64 --publish never
 
-      - name: "8. Upload Windows Installer"
+      - name: "9. Upload Windows Installer"
         uses: actions/upload-artifact@v4
         with:
           name: HIKER-Factory-ERP-Windows-EXE
-          path: |
-            dist/**/*.exe
-            release/**/*.exe
+          path: release/*.exe
           if-no-files-found: error
           retention-days: 14
